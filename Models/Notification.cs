@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SVNSlackNotifier.Models
+namespace SVNWebexNotifier.Models
 {
     public class Notification
     {
@@ -13,6 +13,7 @@ namespace SVNSlackNotifier.Models
         // Commit-specific
         public string CommitAuthor { get; set; }
         public string CommitMessage { get; set; }
+        public string CommitChanged { get; set; }
 
         // Slack-specific
         public string Channel { get; set; }

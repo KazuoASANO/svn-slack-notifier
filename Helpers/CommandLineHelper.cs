@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace SVNSlackNotifier.Helpers
+namespace SVNWebexNotifier.Helpers
 {
     public class CommandLineHelper
     {

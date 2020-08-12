@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.ServicePointManager;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using SVNSlackNotifier.Helpers;
-using SVNSlackNotifier.Models;
+using SVNWebexNotifier.Helpers;
+using SVNWebexNotifier.Models;
 
-namespace SVNSlackNotifier
+namespace SVNWebexNotifier
 {
     public class SlackNotifier
     {
@@ -30,16 +30,21 @@ namespace SVNSlackNotifier
                 else
                 {
                     // Supporting protocol TLS 1.0 / 1.1 / 1.2
-                    SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+                    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
                     // Post to Slack
                     using (var client = new HttpClient())
                     {
                         var request = new HttpRequestMessage(HttpMethod.Post, ConfigurationHelper.SlackWebhookURL);
-                        var keyValues = new List<KeyValuePair<string, string>>();                        
-                        var payload = BuildPayload(notification);
-                        keyValues.Add(new KeyValuePair<string, string>("payload", payload));
-                        request.Content = new FormUrlEncodedContent(keyValues);
+                        string string_payload = BuildPayload(notification);
+                        if (String.IsNullOrEmpty(string_payload))
+                        {
+                            return isSuccess;
+                        }
+
+                        var payload = string_payload;
+                        //Logger.Shared.WriteDebug(payload);
+                        request.Content = new StringContent(payload, null /*Encoding.UTF8*/, "application/json");
                         using (var response = await client.SendAsync(request))
                         using (var content = response.Content)
                         {
@@ -70,12 +75,29 @@ namespace SVNSlackNotifier
             // Get some more data about this commit via "svnlook"
             notification.CommitMessage = CommandLineHelper.ExecuteProcess(ConfigurationHelper.SVNLookProcessPath, string.Format("log -r {0} {1}", notification.Revision, notification.RepositoryPath));
             notification.CommitAuthor = CommandLineHelper.ExecuteProcess(ConfigurationHelper.SVNLookProcessPath, string.Format("author -r {0} {1}", notification.Revision, notification.RepositoryPath));
+            notification.CommitChanged = CommandLineHelper.ExecuteProcess(ConfigurationHelper.SVNLookProcessPath, string.Format("changed -r {0} {1}", notification.Revision, notification.RepositoryPath));
 
-            // Ensure valid formatting of message
-            if(notification.CommitMessage.Contains("\""))
+            if (!notification.CommitChanged.Contains(notification.RepositoryName))
+            {
+                return null;
+            }
+
+                // Ensure valid formatting of message
+            if (notification.CommitMessage.Contains("\""))
                 notification.CommitMessage = notification.CommitMessage.Replace("\"", "\\\"");
+            if (notification.CommitMessage.Contains("\r"))
+                notification.CommitMessage = notification.CommitMessage.Replace("\r", "");
+            if (notification.CommitMessage.Contains("\n"))
+                notification.CommitMessage = notification.CommitMessage.Replace("\n", "<br>");
             if (notification.CommitAuthor.Contains("\""))
                 notification.CommitAuthor = notification.CommitAuthor.Replace("\"", "\\\"");
+            if (notification.CommitChanged.Contains("\""))
+                notification.CommitChanged = notification.CommitChanged.Replace("\"", "\\\"");
+            if (notification.CommitChanged.Contains("\r"))
+                notification.CommitChanged = notification.CommitChanged.Replace("\r", "");
+            if (notification.CommitChanged.Contains("\n"))
+                notification.CommitChanged = notification.CommitChanged.Replace("\n", "<br>");
+
             // Trim off unnecessary trailing CRLFs
             notification.CommitMessage = notification.CommitMessage.TrimEnd(new char[] { '\r', '\n' });
             notification.CommitAuthor = notification.CommitAuthor.TrimEnd(new char[] { '\r', '\n' });
@@ -83,32 +105,18 @@ namespace SVNSlackNotifier
             // Use advanced message formatting for incoming webhooks
             var payloadBody = new StringBuilder();
             payloadBody.Append("{");    // begin payload
-            payloadBody.Append(" \"username\" : \"VisualSVN Server\", ");
-            payloadBody.Append(" \"icon_url\" : \"http://s3.amazonaws.com/scs-public/visualsvn_96.png\", ");
-            if (!string.IsNullOrEmpty(notification.Channel))
-                payloadBody.Append(string.Format(" \"channel\" : \"{0}\", ", notification.Channel));
-            payloadBody.Append(" \"attachments\" : [ { ");  // begin attachments            
-            if (!string.IsNullOrEmpty(notification.RepositoryName))
-            {
-                payloadBody.Append(string.Format(" \"fallback\" : \"[{0}] New commit by {1}: r{2}: {3}\", ", notification.RepositoryName, notification.CommitAuthor, notification.Revision, notification.CommitMessage));
-                payloadBody.Append(string.Format(" \"pretext\" : \"[{0}] New commit by {1}\", ", notification.RepositoryName, notification.CommitAuthor));
-            }
-            else
-            {
-                payloadBody.Append(string.Format(" \"fallback\" : \"New commit by {0}: r{1}: {2}\", ", notification.CommitAuthor, notification.Revision, notification.CommitMessage));
-                payloadBody.Append(string.Format(" \"pretext\" : \"New commit by {0}\", ", notification.CommitAuthor));
-            }
+
             if (!string.IsNullOrEmpty(notification.RepositoryURL))
             {
                 if (notification.RepositoryURL.Contains("/svn/"))
                     notification.RepositoryURL = notification.RepositoryURL.Replace("/svn/", "/!/#");
-                notification.RepositoryURL += "/commit/r" + notification.Revision;
-                payloadBody.Append(string.Format(" \"text\" : \"<{0}|r{1}>: {2}\", ", notification.RepositoryURL, notification.Revision, notification.CommitMessage));
+                    notification.RepositoryURL += "/commit/r" + notification.Revision;
             }
-            else
-                payloadBody.Append(string.Format(" \"text\" : \"r{0}: {1}\", ", notification.Revision, notification.CommitMessage));
-            payloadBody.Append(" \"color\" : \"#3886C0\" ");
-            payloadBody.Append("} ]"); // end attachments
+
+            payloadBody.Append(string.Format(" \"markdown\" : \"■-----<br>**From Tomey VisualSVN Server**  <br>*<{0}> New commit by {1}*<br>**r{2}:** {3}<br>{4}<br>■-----\" ",
+                notification.RepositoryName, notification.CommitAuthor, 
+                notification.Revision, notification.CommitMessage, notification.CommitChanged));
+
             payloadBody.Append("}"); // end payload
 
             return payloadBody.ToString();

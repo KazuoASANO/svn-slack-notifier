@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SVNSlackNotifier.Helpers
+namespace SVNWebexNotifier.Helpers
 {
     public sealed class Logger
     {
@@ -38,7 +38,7 @@ namespace SVNSlackNotifier.Helpers
 
         public Logger()
         {
-            LogFilePath = Path.Combine(Path.GetDirectoryName(new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath), "SVNSlackNotifier.log");
+            LogFilePath = Path.Combine(Path.GetDirectoryName(new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath), "SVNwebexNotifier.log");
             LogWriter = TextWriter.Synchronized(File.AppendText(LogFilePath));
         }
 

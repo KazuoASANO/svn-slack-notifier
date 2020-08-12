@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Configuration;
 
-namespace SVNSlackNotifier.Helpers
+namespace SVNWebexNotifier.Helpers
 {
     public class ConfigurationHelper
     {

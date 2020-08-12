@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SVNSlackNotifier")]
+[assembly: AssemblyTitle("SVNWebexNotifier")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Scenic City Solutions LLC")]
-[assembly: AssemblyProduct("SVNSlackNotifier")]
+[assembly: AssemblyProduct("SVNWebexNotifier")]
 [assembly: AssemblyCopyright("Copyright © Scenic City Solutions LLC 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

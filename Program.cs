@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using SVNSlackNotifier.Models;
+using SVNWebexNotifier.Models;
+using System.Diagnostics;
 
-namespace SVNSlackNotifier
+namespace SVNWebexNotifier
 {
     static class Program
     {
@@ -38,7 +39,7 @@ namespace SVNSlackNotifier
                     else if (arg.ToLower().StartsWith(FLAG_CHANNEL) && arg.Length > FLAG_CHANNEL.Length)
                         notification.Channel = arg.Substring(FLAG_CHANNEL.Length);
                 }
-
+                Debug.WriteLine(">Message for Debugging.");
                 Task.Run(() => new SlackNotifier().PostNotificationAsync(notification)).Wait();
             }
         }
